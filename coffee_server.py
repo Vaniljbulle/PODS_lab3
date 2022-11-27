@@ -3,7 +3,6 @@ import socket as SOCKET
 import threading as THREADING
 import coffeemachine as COFFEEMACHINE
 
-debug = False
 coffeeMachine = COFFEEMACHINE.CoffeeMachine()
 
 
@@ -25,11 +24,9 @@ class ThreadedUDPServer(SOCKETSERVER.ThreadingMixIn, SOCKETSERVER.UDPServer):
 
 
 def UDPServer():
-    if debug:
-        server_address = ("127.0.0.1", 3000)
-    else:
-        local_ip = SOCKET.gethostbyname(SOCKET.gethostname())
-        server_address = (local_ip, 3000)
+    local_ip = SOCKET.gethostbyname(SOCKET.gethostname())
+    server_address = (local_ip, 3000)
+
     server = ThreadedUDPServer(server_address, ThreadedUDPRequestHandler)
 
     try:
@@ -40,11 +37,30 @@ def UDPServer():
             server_thread.start()
             print("Server loop running in thread: {}".format(server_thread.name))
 
-            # Idle
+            # Process coffee orders
+            order_socket = SOCKET.socket(SOCKET.AF_INET, SOCKET.SOCK_DGRAM)
+            order_socket.settimeout(5)
             while True:
-                pass
+                order = coffeeMachine.processOrder()
+                if order:
+                    print("\nProcessing order from {}".format(order))
+
+                    # Request payment from client
+                    order_socket.sendto(b"PAY", order)
+                    try:
+                        payload = order_socket.recv(1024)
+                        if payload == b"PAYMENT":
+                            print("Payment received from {}".format(order))
+                            order_socket.sendto(b"CONFIRMED", order)
+                            coffeeMachine.buy(1)
+                            print("Coffee served to {} - order complete".format(order))
+                            order_socket.sendto(b"SERVED", order)
+                    except SOCKET.timeout:
+                        print("Client did not respond - order nullified")
+
     except KeyboardInterrupt:
         print("Server shutting down")
+        order_socket.close()
         server.shutdown()
         server.server_close()
 
