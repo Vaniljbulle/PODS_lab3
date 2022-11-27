@@ -14,3 +14,7 @@ class CoffeeMachine:
 
     def inventory(self):
         return self.coffee
+
+    def processOrder(self):
+        if len(self.coffeeQueue) > 0:
+            return self.coffeeQueue.pop(0)
