@@ -1,28 +1,11 @@
 import socketserver as SOCKETSERVER
 import socket as SOCKET
+import threading as THREADING
 
-debug = True
-
-
-class CoffeeMachine:
-    def __init__(self):
-        self.coffee = 0
-        self.gold = 0
-
-    def __str__(self):
-        return "The coffee machine has:\n" \
-               "{} coffee\n" \
-               "{} gold\n".format(self.coffee, self.gold)
-
-    def fill(self, coffee):
-        self.coffee += coffee
-
-    def buy(self, coffee, gold):
-        self.coffee -= coffee
-        self.gold += gold
+debug = False
 
 
-class UDPHandler(SOCKETSERVER.BaseRequestHandler):
+class ThreadedUDPRequestHandler(SOCKETSERVER.BaseRequestHandler):
     def handle(self):
         data = self.request[0].strip()
         socket = self.request[1]
@@ -31,17 +14,29 @@ class UDPHandler(SOCKETSERVER.BaseRequestHandler):
         socket.sendto(data.upper(), self.client_address)
 
 
+class ThreadedUDPServer(SOCKETSERVER.ThreadingMixIn, SOCKETSERVER.UDPServer):
+    pass
+
+
 def UDPServer():
     if debug:
         server_address = ("127.0.0.1", 3000)
     else:
         local_ip = SOCKET.gethostbyname(SOCKET.gethostname())
         server_address = (local_ip, 3000)
-    server = SOCKETSERVER.UDPServer(server_address, UDPHandler)
+    server = ThreadedUDPServer(server_address, ThreadedUDPRequestHandler)
 
     try:
-        server.serve_forever()
         print("Server started on {}".format(server_address))
+        with server:
+            server_thread = THREADING.Thread(target=server.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+            print("Server loop running in thread: {}".format(server_thread.name))
+
+            # Idle
+            while True:
+                pass
     except KeyboardInterrupt:
         print("Server shutting down")
         server.shutdown()
