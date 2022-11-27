@@ -38,7 +38,9 @@ def UDPClient():
 
 
 def main():
-    UDPClient()
+    for i in range(0, 10):
+        print("Ordering coffee #{}".format(i + 1))
+        UDPClient()
 
 
 if __name__ == '__main__':
