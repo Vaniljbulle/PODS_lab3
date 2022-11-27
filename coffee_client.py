@@ -33,6 +33,8 @@ def UDPClient():
             print("Coffee machine served coffee - order finished")
         else:
             print("Coffee machine did not serve coffee - order failed")
+    else:
+        print("Coffee machine rejected order - OUT OF COFFEE")
 
 
 def main():
