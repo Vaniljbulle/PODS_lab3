@@ -1,3 +1,6 @@
+from time import sleep
+
+
 class CoffeeMachine:
     def __init__(self):
         self.coffee = 5
@@ -10,7 +13,13 @@ class CoffeeMachine:
         self.coffee += coffee
 
     def buy(self, coffee):
+        print("Coffee machine is pouring coffee")
+        # Simulate coffee being poured animation in console
+        for i in range(0, 10):
+            print(".", end="", flush=True)
+            sleep(0.5)
         self.coffee -= coffee
+        print(" Done!")
 
     def inventory(self):
         return self.coffee
