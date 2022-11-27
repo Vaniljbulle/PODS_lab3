@@ -12,11 +12,12 @@ class ThreadedUDPRequestHandler(SOCKETSERVER.BaseRequestHandler):
         socket = self.request[1]
 
         if payload == b"COFFEE":
-            if coffeeMachine.inventory() > (len(coffeeMachine.coffeeQueue)):
+            if coffeeMachine.inventory() > (len(coffeeMachine.coffeeQueue) - 1):
                 socket.sendto(b"ACCEPTED", self.client_address)
                 coffeeMachine.coffeeQueue.append(self.client_address)
             else:
                 socket.sendto(b"REJECTED - OUT OF COFFEE", self.client_address)
+                print(f"\nOut of coffee - {coffeeMachine.inventory()}")
 
 
 class ThreadedUDPServer(SOCKETSERVER.ThreadingMixIn, SOCKETSERVER.UDPServer):
@@ -39,7 +40,7 @@ def UDPServer():
 
             # Process coffee orders
             order_socket = SOCKET.socket(SOCKET.AF_INET, SOCKET.SOCK_DGRAM)
-            order_socket.settimeout(5)
+            order_socket.settimeout(15)
             while True:
                 order = coffeeMachine.processOrder()
                 if order:
