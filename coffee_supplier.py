@@ -1,24 +1,36 @@
 import socket
 from time import sleep
 
-# Create a UDP server socket
-Host = "192.168.1.167"
-Port = 3000
-bufferSize = 1024
+supplier_server_address = ("192.168.1.167", 4000)
+coffee_machine_server_address = ("192.168.1.167", 3000)
 
-request = b"REFILL"
 
-# Create a UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+def supplyServer():
+    supply_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    supply_socket.bind(supplier_server_address)
 
-# bind the socket to the port
-sock.bind((Host, Port))
+    while True:
+        print("Waiting for refill request..")
+        payload, address = supply_socket.recvfrom(1024)
+        if payload == b"REFILL":
+            supply_socket.sendto(b"ACCEPTED", address)  # Accept order
 
-print("supplier is listening on coffee machine")
+            print("Sending refill")
+            for i in range(0, 10):
+                print(".", end="", flush=True)
+                sleep(0.5)
+            print(" Coffee beans sent!")
+            # Send refill
+            supply_socket.sendto(b"COFFEE BEANS", coffee_machine_server_address)
+            print("Waiting for refill confirmation")
+            payload, address = supply_socket.recvfrom(1024)
+            if payload == b"REFILLED":
+                print("Refill confirmed")
 
-while True:
-    data, address = sock.recvfrom(bufferSize)
-    print("received message: %s" % data)
-    if data == request:
-        sleep(1)  # wait for 1 second
-        sock.sendto(b"REFILLED", address)
+
+def main():
+    supplyServer()
+
+
+if __name__ == '__main__':
+    main()
