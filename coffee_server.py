@@ -1,17 +1,23 @@
 import socketserver as SOCKETSERVER
 import socket as SOCKET
 import threading as THREADING
+import coffeemachine as COFFEEMACHINE
 
 debug = False
+coffeeMachine = COFFEEMACHINE.CoffeeMachine()
 
 
 class ThreadedUDPRequestHandler(SOCKETSERVER.BaseRequestHandler):
     def handle(self):
-        data = self.request[0].strip()
+        payload = self.request[0].strip()
         socket = self.request[1]
-        print("{} wrote:".format(self.client_address[0]))
-        print(data)
-        socket.sendto(data.upper(), self.client_address)
+
+        if payload == b"COFFEE":
+            if coffeeMachine.inventory() > (len(coffeeMachine.coffeeQueue)):
+                socket.sendto(b"ACCEPTED", self.client_address)
+                coffeeMachine.coffeeQueue.append(self.client_address)
+            else:
+                socket.sendto(b"REJECTED - OUT OF COFFEE", self.client_address)
 
 
 class ThreadedUDPServer(SOCKETSERVER.ThreadingMixIn, SOCKETSERVER.UDPServer):
