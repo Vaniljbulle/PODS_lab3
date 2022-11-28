@@ -18,9 +18,10 @@ def sendAndReceive(s_socket, payload, address, asks, timeout, expected):
 def receiveAndSend(s_socket, payload, timeout, expected):
     s_socket.settimeout(timeout)
     try:
-        data = s_socket.recv(1024)
-        if data[0] == expected:
-            s_socket.sendto(payload, data[1])
+        data, address = s_socket.recvfrom(1024)
+
+        if data == expected:
+            s_socket.sendto(payload, address)
             return True
     except socket.timeout:
         print("Timeout - retrying")
