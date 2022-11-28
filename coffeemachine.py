@@ -3,6 +3,7 @@ import fakeTCP
 import socket
 
 MAX_COFFEE = 5
+REQUEST_COFFEE = 0
 
 supplier_server_address = None
 coffee_server_address = None
@@ -17,6 +18,7 @@ class CoffeeMachine:
         self.supply_requested = False
         self.supplier_server_address = supplyAddress
         self.coffee_server_address = coffeeAddress
+        print(f"{self.coffee_server_address} is ready to serve\n{self.supplier_server_address} is ready to supply")
 
     def __str__(self):
         return "Coffee left: {}".format(self.coffee)
@@ -71,14 +73,11 @@ class CoffeeMachine:
             self.coffee_queue.pop(0)  # Remove client from queue
 
     def requestSupply(self):
-        if (self.inventory() == 0) and (self.supply_requested is False):
+        if (self.inventory() <= REQUEST_COFFEE) and (self.supply_requested is False):
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as supply_socket:
-                print(
-                    f"\nOut of coffee - supplier notified at {self.supplier_server_address}"
-                    f"\nCoffee left: {self.inventory()}"
-                    f"\nCustomers in queue: {len(self.coffee_queue)}")
-
-                if fakeTCP.sendAndReceive(supply_socket, b"REFILL", supplier_server_address, 5, 3, b"ACCEPTED"):
+                print(f"\nOut of coffee - supplier notified at {self.supplier_server_address}\nCoffee left: {self.inventory()}\nCustomers in queue: {len(self.coffee_queue)}")
+                if fakeTCP.sendAndReceive(supply_socket, b"REFILL", self.supplier_server_address, 5, 3, b"ACCEPTED"):
+                    print("Supplier accepted request")
                     self.supply_requested = True
 
     def processSupply(self):
@@ -90,10 +89,10 @@ class CoffeeMachine:
                 supply_address = self.supply_queue[0]
                 print("\nProcessing supply from {}, ".format(supply_address), end="")
                 self.fill()
-                if fakeTCP.sendAndReceive(supply_socket, b"REFILLED", supply_address, 5, 3, b"CONFIRMED"):
-                    print("Supplier notified")
+                fakeTCP.sendAndReceive(supply_socket, b"REFILLED", supply_address, 5, 3, None)
                 print("Coffee machine refilled")
                 self.supply_requested = False
+                self.resume()
                 self.supply_queue.pop(0)
 
                 """"# Establish connection with client

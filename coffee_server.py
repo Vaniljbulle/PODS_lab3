@@ -21,7 +21,8 @@ class ThreadedUDPRequestHandler(SOCKETSERVER.BaseRequestHandler):
                 socket.sendto(b"ACCEPTED", self.client_address)  # Accept order
                 coffeeMachine.coffee_queue.append(self.client_address)  # Add client to queue
             else:
-                socket.sendto(b"REJECTED - OUT OF COFFEE", self.client_address)  # Reject order
+                # socket.sendto(b"REJECTED - OUT OF COFFEE", self.client_address)  # Reject
+                pass
         elif payload == b"COFFEE BEANS":  # Refill request
             coffeeMachine.supply_queue.append(self.client_address)  # Add supplier to queue
             coffeeMachine.pause()  # Pause coffee machine
@@ -58,6 +59,7 @@ def UDPServer():
 
     except KeyboardInterrupt:
         print("Server shutting down")
+        server_thread.join()
         server.shutdown()
         server.server_close()
 
