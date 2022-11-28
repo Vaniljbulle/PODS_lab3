@@ -1,10 +1,12 @@
 import socketserver as SOCKETSERVER
 import socket as SOCKET
 import threading as THREADING
+import time
+
 import coffeemachine as COFFEEMACHINE
 
 coffeeMachine = COFFEEMACHINE.CoffeeMachine()
-supplier_server_address = ("192.168.1.167", 4000)
+supplier_server_address = ("192.168.43.244", 4000)
 
 
 class ThreadedUDPRequestHandler(SOCKETSERVER.BaseRequestHandler):
@@ -29,7 +31,8 @@ class ThreadedUDPServer(SOCKETSERVER.ThreadingMixIn, SOCKETSERVER.UDPServer):
 
 def refillRequest(s_socket):
     if (coffeeMachine.inventory() == 0) and (coffeeMachine.supplyRequested is False):
-        print(f"\nOut of coffee - requesting refill\nCoffee left: {coffeeMachine.inventory()}\nCustomers in queue: {len(coffeeMachine.coffeeQueue)}")
+        print(
+            f"\nOut of coffee - requesting refill\nCoffee left: {coffeeMachine.inventory()}\nCustomers in queue: {len(coffeeMachine.coffeeQueue)}")
 
         s_socket.sendto(b"REFILL", supplier_server_address)
 
@@ -38,27 +41,47 @@ def refillRequest(s_socket):
             coffeeMachine.supplyRequested = True
 
 
-def processOrders(order_socket):
-    order_socket.settimeout(15)
+def sendAndReceive(s_socket, payload, address, asks, timeout, expected):
+    s_socket.settimeout(timeout)
+    for i in range(0, asks):
+        try:
+            s_socket.sendto(payload, address)
+            payload = s_socket.recv(1024)
+            if payload == expected:
+                return True
+        except SOCKET.timeout:
+            print("Timeout - retrying")
+            pass
+    return False
+
+
+def processOrders():
     while True:
+        order_socket = SOCKET.socket(SOCKET.AF_INET, SOCKET.SOCK_DGRAM)
+        order_socket.settimeout(15)
+
         refillRequest(order_socket)
+
         order = coffeeMachine.processOrder()
         if order:
             print("\nProcessing order from {}, ".format(order), end="")
-
-            # Request payment from client
-            order_socket.sendto(b"PAY", order)
-            try:
-                payload = order_socket.recv(1024)
-                if payload == b"PAYMENT":  # Client sent payment
-                    print("Payment received, ".format(order))
-                    order_socket.sendto(b"CONFIRMED", order)  # Confirm payment to client
-                    coffeeMachine.buy(1)  # Pour coffee
-                    coffeeMachine.orderPop()  # Remove order from queue
-                    order_socket.sendto(b"SERVED", order)  # Serve coffee
-            except SOCKET.timeout:
-                # Client didn't pay in time
-                print(" Payment unsuccessful - order nullified")
+            # Establish connection with client
+            if sendAndReceive(order_socket, b"CONNECT", order, 5, 3, b"CONNECTED"):
+                # Ask for payment once connected
+                if sendAndReceive(order_socket, b"PAY", order, 5, 3, b"PAYMENT"):
+                    # Confirm payment arrived, give receipt
+                    if sendAndReceive(order_socket, b"RECEIPT", order, 5, 3, b"ARRIVED"):
+                        # Confirm receipt arrived, give coffee
+                        coffeeMachine.buy(1)
+                        if sendAndReceive(order_socket, b"COFFEE", order, 5, 3, b"THANKS"):
+                            print("Coffee delivered")
+                    else:
+                        print("Customer left without coffee")
+                else:
+                    print("Payment rejected")
+            else:
+                print("Connection rejected - order removed")
+            coffeeMachine.coffeeQueue.pop(0)  # Remove client from queue
         elif len(coffeeMachine.supplyQueue) > 0:
             print("\nRefill order in process..")
             supplier = coffeeMachine.processSupply()
@@ -71,8 +94,8 @@ def processOrders(order_socket):
 
 def UDPServer():
     # Setup server
-    local_ip = SOCKET.gethostbyname(SOCKET.gethostname())
-    server_address = (local_ip, 3000)
+    # local_ip = SOCKET.gethostbyname(SOCKET.gethostname())
+    server_address = ("192.168.43.244", 3000)
     server = ThreadedUDPServer(server_address, ThreadedUDPRequestHandler)
 
     try:
@@ -85,12 +108,11 @@ def UDPServer():
             print("Server loop running in thread: {}".format(server_thread.name))
 
             # Process coffee orders
-            order_socket = SOCKET.socket(SOCKET.AF_INET, SOCKET.SOCK_DGRAM)
-            processOrders(order_socket)
+            processOrders()
 
     except KeyboardInterrupt:
         print("Server shutting down")
-        order_socket.close()
+        # order_socket.close()
         server.shutdown()
         server.server_close()
 

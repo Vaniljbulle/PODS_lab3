@@ -1,8 +1,8 @@
 import socket
 from time import sleep
 
-supplier_server_address = ("192.168.1.167", 4000)
-coffee_machine_server_address = ("192.168.1.167", 3000)
+supplier_server_address = ("192.168.43.244", 4000)
+coffee_machine_server_address = ("192.168.43.244", 3000)
 
 
 def supplyServer():
