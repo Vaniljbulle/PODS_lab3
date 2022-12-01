@@ -1,16 +1,18 @@
 import socket
+import threading
 import time
 
 import fakeTCP
 
+coffee_machine_server_address = ("192.168.1.167", 3000)
+
 
 def UDPClient():
-    coffee_machine_server_address = ("192.168.1.167", 3000)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Order coffee
     print("Ordering coffee.. ", end="", flush=True)
-    if fakeTCP.sendAndReceive(sock, b"COFFEE", coffee_machine_server_address, 5, 3, b"ACCEPTED"):
+    if fakeTCP.sendAndReceive(sock, b"COFFEE", coffee_machine_server_address, 1, 2, b"ACCEPTED"):
         print("Accepted.\nWaiting for my turn.. ", end="", flush=True)
 
         # Wait for coffee machine to ask for connection
@@ -35,14 +37,20 @@ def UDPClient():
             else:
                 print("Coffee machine did not respond")
     else:
-        print("Coffee machine rejected order")
+        print(" Rejected - Out of coffee, supplier on the way!")
 
 
-def main():
-    for i in range(0, 10):
+def order():
+    for i in range(0, 13):
         print("\nCoffee #{}".format(i + 1))
         UDPClient()
         time.sleep(1)
+
+
+def main():
+    # Start multiple orders
+    for i in range(0, 1):
+        threading.Thread(target=order).start()
 
 
 if __name__ == '__main__':

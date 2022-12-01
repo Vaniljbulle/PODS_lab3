@@ -12,7 +12,6 @@ def sendAndReceive(s_socket, payload, address, asks, timeout, expected):
             if payload == expected:
                 return True
         except socket.timeout:
-            print("Timeout - retrying")
             pass
     return False
 
@@ -26,6 +25,5 @@ def receiveAndSend(s_socket, payload, timeout, expected):
             s_socket.sendto(payload, address)
             return True
     except socket.timeout:
-        print("Timeout")
         pass
     return False

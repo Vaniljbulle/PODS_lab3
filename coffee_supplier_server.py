@@ -1,10 +1,9 @@
 import socket
 from time import sleep
 
-import fakeTCP
-
 supplier_server_address = ("192.168.1.167", 4000)
 coffee_server_address = ("192.168.1.167", 3000)
+
 
 def receiveAndSend(s_socket, payload, expected):
     data, address = s_socket.recvfrom(1024)
@@ -20,7 +19,7 @@ def supplyServer():
 
     try:
         while True:
-            print("Waiting for refill request..")
+            print("\nWaiting for refill request..")
             if receiveAndSend(supply_socket, b"ACCEPTED", b"REFILL"):
 
                 print("Sending refill")
