@@ -3,8 +3,8 @@ import threading
 
 import coffeemachine
 
-supplier_server_address = ("192.168.1.167", 4000)
-coffee_server_address = ("192.168.1.167", 3000)
+supplier_server_address = ("10.22.20.99", 4000)
+coffee_server_address = ("10.22.20.99", 3000)
 coffeeMachine = coffeemachine.CoffeeMachine(supplier_server_address, coffee_server_address)
 
 
@@ -14,8 +14,9 @@ class ThreadedUDPRequestHandler(socketserver.BaseRequestHandler):
         socket = self.request[1]
 
         if payload == b"COFFEE":  # Coffee request
-            if coffeeMachine.put_in_order(self.client_address):  # Put in order
+            if coffeeMachine.can_accept_orders():  # Put in order
                 socket.sendto(b"ACCEPTED", self.client_address)  # Order accepted
+                coffeeMachine.put_in_order(self.client_address)
             else:
                 socket.sendto(b"REJECTED", self.client_address)  # Order rejected
         elif payload == b"COFFEE BEANS":  # Refill request

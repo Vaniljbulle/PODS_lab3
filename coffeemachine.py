@@ -4,7 +4,7 @@ import socket
 import threading
 import queue
 
-MAX_COFFEE = 5
+MAX_COFFEE = 20
 REQUEST_COFFEE = 0
 speed = 0.1
 
@@ -60,9 +60,7 @@ class CoffeeMachine:
         print(" Done!")
 
     def put_in_order(self, client_address):
-        if self.can_accept_orders():
-            self.coffee_queue.put(client_address)
-            return True
+        self.coffee_queue.put(client_address)
 
     def can_accept_orders(self):
         customers = self.coffee_queue.qsize()
